@@ -1,0 +1,23 @@
+{
+	"required": true,
+	"package": "com.stone.portalbow.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"mixins": [
+		"AbstractArrowMixin"
+	],
+	"client": [
+		"CameraMixin",
+		"GameRendererAccess",
+		"GameRendererMixin",
+		"LevelExtractorMixin",
+		"LevelRendererMixin",
+		"MinecraftMixin",
+		"SpriteContentsAccessor"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	},
+	"overwrites": {
+		"requireAnnotations": true
+	}
+}

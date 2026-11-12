@@ -1,0 +1,43 @@
+plugins {
+	// Fabric Loom downloads Minecraft and adds tasks like runClient.
+	id 'net.fabricmc.fabric-loom' version "${loom_version}"
+}
+
+dependencies {
+	// Versions come from gradle.properties.
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+}
+
+// Copies the version number into fabric.mod.json, replacing ${version}.
+processResources {
+	def version = project.version
+	inputs.property "version", version
+
+	filesMatching("fabric.mod.json") {
+		expand "version": version
+	}
+}
+
+// Minecraft 26.3 runs on Java 25, so the mod must be compiled for it.
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 25
+}
+
+java {
+	sourceCompatibility = JavaVersion.VERSION_25
+	targetCompatibility = JavaVersion.VERSION_25
+}
+
+// Automated in-game test: "./gradlew runClientGameTest" opens the game, builds a small scene
+// with two linked portals and saves screenshots to build/run/clientGameTest/screenshots.
+fabricApi {
+	configureTests {
+		createSourceSet = true
+		modId = "portalbow-test"
+		enableGameTests = false
+		enableClientGameTests = true
+		eula = true
+	}
+}

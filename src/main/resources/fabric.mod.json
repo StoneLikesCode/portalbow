@@ -1,0 +1,29 @@
+{
+	"schemaVersion": 1,
+	"id": "portalbow",
+	"version": "${version}",
+	"name": "Portal Bow",
+	"description": "Adds the Portal enchantment for bows. Arrows open an orange portal where they land, or a blue one if you fire while sneaking. Walk through one to come out of the other. Drawn with ordinary entity rendering, so it works with shader packs.",
+	"authors": [
+		"stone"
+	],
+	"icon": "assets/portalbow/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.stone.portalbow.PortalBow"
+		],
+		"client": [
+			"com.stone.portalbow.client.PortalBowClient"
+		]
+	},
+	"mixins": [
+		"portalbow.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.20.1",
+		"minecraft": "~26.3",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}

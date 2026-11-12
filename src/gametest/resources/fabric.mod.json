@@ -1,0 +1,15 @@
+{
+	"schemaVersion": 1,
+	"id": "portalbow-test",
+	"version": "1.0.0",
+	"name": "Portal Bow tests",
+	"environment": "*",
+	"entrypoints": {
+		"fabric-client-gametest": [
+			"com.stone.portalbow.test.PortalViewTest"
+		]
+	},
+	"depends": {
+		"portalbow": "*"
+	}
+}
