@@ -22,6 +22,8 @@ import net.minecraft.client.renderer.chunk.SectionRenderDispatcher;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
+import net.minecraft.util.Mth;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.world.entity.Entity;
@@ -41,13 +43,23 @@ import org.slf4j.Logger;
  *
  * <p>This only works when the exit portal is in the same dimension and inside your render
  * distance, because your game only has those chunks. Otherwise the portal falls back to the
- * simpler picture made by {@link PortalView}. Each portal in view costs about as much as
- * drawing the whole game once more.
+ * simpler picture made by {@link PortalView}.
+ *
+ * <p>Each portal view costs about as much as drawing the whole game once more, so two things
+ * keep the bill down. A portal hidden behind solid blocks is skipped. And only one view is drawn
+ * per frame: when two portals are in sight they take turns, each picture being one frame old
+ * every other frame, rather than the game being drawn three times every frame.
  */
 public final class TrueViews {
 	private static final Logger LOGGER = LogUtils.getLogger();
-	/** How many portal views to draw per frame, nearest first. */
-	private static final int MAX_PER_FRAME = 2;
+	/** How many portals (the nearest ones) get a real view at all. */
+	private static final int MAX_PORTALS = 2;
+	/**
+	 * How many of those views are redrawn each frame; the rest keep last frame's picture. Raise
+	 * to 2 for portal views that are always up to date, at the cost of a lower frame rate
+	 * whenever two portals are in sight.
+	 */
+	private static final int MAX_PER_FRAME = 1;
 	/** Portals further from the camera than this (in blocks) use the simpler picture. */
 	private static final double MAX_DISTANCE = 48.0;
 
@@ -93,11 +105,20 @@ public final class TrueViews {
 			double exitDz = exit.pos().z - minecraft.player.getZ();
 			boolean exitLoaded = exitDx * exitDx + exitDz * exitDz < reach * reach;
 			if (inFront && exitLoaded && distanceSqr < MAX_DISTANCE * MAX_DISTANCE
-					&& camera.getCullFrustum().isVisible(portal.getBoundingBox())) {
+					&& camera.getCullFrustum().isVisible(portal.getBoundingBox())
+					&& canSee(minecraft.level, eye, portal)) {
 				jobs.add(new Job(portal, exit, distanceSqr));
 			}
 		}
 		jobs.sort(Comparator.comparingDouble(Job::distanceSqr));
+		if (jobs.size() > MAX_PORTALS) {
+			jobs.subList(MAX_PORTALS, jobs.size()).clear();
+		}
+		// Whoever has waited longest goes first. A portal with no picture yet has waited forever.
+		jobs.sort(Comparator.comparingLong(job -> {
+			TrueView view = VIEWS.get(job.portal().getId());
+			return view == null ? Long.MIN_VALUE : view.drawnAt;
+		}));
 		for (int i = 0; i < Math.min(jobs.size(), MAX_PER_FRAME); i++) {
 			Job job = jobs.get(i);
 			try {
@@ -109,6 +130,49 @@ public final class TrueViews {
 				return;
 			}
 		}
+	}
+
+	/**
+	 * False only when solid blocks hide the whole portal from the eye, so drawing its view would
+	 * be wasted work. Nine spots spread over the portal are tried; one clear line is enough.
+	 * Only full, opaque blocks count as hiding it: glass, leaves, fences and the like do not.
+	 */
+	private static boolean canSee(BlockGetter level, Vec3 eye, PortalEntity portal) {
+		Vec3 n = portal.getFacing().getUnitVec3();
+		Vec3 u = portal.getUp().getUnitVec3();
+		Vec3 r = u.cross(n);
+		// Just off the surface, so the wall the portal hangs on is not mistaken for something in the way.
+		Vec3 middle = portal.position().add(n.scale(0.1));
+		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+		for (int across = -1; across <= 1; across++) {
+			for (int along = -1; along <= 1; along++) {
+				Vec3 spot = middle.add(r.scale(across * 0.4)).add(u.scale(along * 0.85));
+				if (clearLine(level, eye, spot, pos)) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	/** Walks from one point to the other in small steps, looking for a solid block in between. */
+	private static boolean clearLine(BlockGetter level, Vec3 from, Vec3 to, BlockPos.MutableBlockPos pos) {
+		Vec3 line = to.subtract(from);
+		int steps = Math.max(1, (int) Math.ceil(line.length() / 0.25));
+		long last = Long.MIN_VALUE;
+		for (int i = 1; i < steps; i++) {
+			double t = (double) i / steps;
+			pos.set(Mth.floor(from.x + line.x * t), Mth.floor(from.y + line.y * t), Mth.floor(from.z + line.z * t));
+			long here = pos.asLong();
+			if (here == last) {
+				continue;
+			}
+			last = here;
+			if (level.getBlockState(pos).isSolidRender()) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	private static void renderOne(Minecraft minecraft, DeltaTracker deltaTracker, PortalEntity portal, TrueViewCamera viewCamera)
