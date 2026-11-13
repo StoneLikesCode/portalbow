@@ -214,5 +214,6 @@ public final class TrueViews {
 	static void clear() {
 		VIEWS.values().forEach(TrueView::close);
 		VIEWS.clear();
+		IrisPipelines.clear();
 	}
 }

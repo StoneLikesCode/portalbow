@@ -23,9 +23,11 @@ public class PortalBowClient implements ClientModInitializer {
 			PortalViews.tick();
 			TrueViews.tick();
 		});
-		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+		// This event can arrive on a network thread, but pictures and shader pipelines may only be
+		// freed on the game's own thread, so hand the tidying-up over to it.
+		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> client.execute(() -> {
 			PortalViews.clear();
 			TrueViews.clear();
-		});
+		}));
 	}
 }
