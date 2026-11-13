@@ -45,21 +45,20 @@ import org.slf4j.Logger;
  * distance, because your game only has those chunks. Otherwise the portal falls back to the
  * simpler picture made by {@link PortalView}.
  *
- * <p>Each portal view costs about as much as drawing the whole game once more, so two things
- * keep the bill down. A portal hidden behind solid blocks is skipped. And only one view is drawn
- * per frame: when two portals are in sight they take turns, each picture being one frame old
- * every other frame, rather than the game being drawn three times every frame.
+ * <p>Each portal view costs about as much as drawing the whole game once more (a good deal
+ * with a shader pack on, whose shadows and effects are all done again for each portal), so a
+ * portal hidden behind solid blocks is skipped.
  */
 public final class TrueViews {
 	private static final Logger LOGGER = LogUtils.getLogger();
 	/** How many portals (the nearest ones) get a real view at all. */
 	private static final int MAX_PORTALS = 2;
 	/**
-	 * How many of those views are redrawn each frame; the rest keep last frame's picture. Raise
-	 * to 2 for portal views that are always up to date, at the cost of a lower frame rate
-	 * whenever two portals are in sight.
+	 * How many of those views are redrawn each frame; the rest keep last frame's picture and
+	 * take turns. Lower to 1 for a higher frame rate when two portals are in sight, at the cost
+	 * of each portal's picture only updating every other frame.
 	 */
-	private static final int MAX_PER_FRAME = 1;
+	private static final int MAX_PER_FRAME = 2;
 	/** Portals further from the camera than this (in blocks) use the simpler picture. */
 	private static final double MAX_DISTANCE = 48.0;
 

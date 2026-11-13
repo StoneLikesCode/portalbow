@@ -19,7 +19,7 @@ The enchantment also appears at the enchanting table, in villager trades and in 
 
 ## How the view through a portal works
 
-- **Real view:** when the exit is in the same dimension and within render distance, the game is drawn a second time from behind the exit portal. Each portal in view costs roughly one extra render of the world; at most two are drawn per frame.
+- **Real view:** when the exit is in the same dimension and within render distance, the game is drawn a second time from behind the exit portal. Each portal in view costs roughly one extra render of the world; at most two are drawn per frame, and portals hidden behind solid blocks are skipped.
 - **Snapshot view:** otherwise the server sends a snapshot of the blocks beyond the exit and the client ray-traces a small picture from it. It is pixelated and does not show mobs or players.
 
 Set the environment variable `PORTALBOW_TRUE_VIEW=off` to use the snapshot view only.
